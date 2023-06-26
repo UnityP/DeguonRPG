@@ -18,7 +18,7 @@ TagManager:
   - Collision A
   - Collision B
   - Collision C
-  - 
+  - Minimap
   - 
   - 
   - 
@@ -56,4 +56,7 @@ TagManager:
     locked: 0
   - name: UI
     uniqueID: 3581332203
+    locked: 0
+  - name: Minimap
+    uniqueID: 71106931
     locked: 0

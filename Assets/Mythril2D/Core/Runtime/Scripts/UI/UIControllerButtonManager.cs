@@ -7,6 +7,9 @@ using UnityEngine.U2D.Animation;
 
 namespace Gyvr.Mythril2D
 {
+    /*
+     * UIControllerButtonManager 클래스는 게임에서 사용하는 컨트롤러의 타입(키보드, XBOX, Playstation)에 따라 UI 버튼의 스프라이트를 변경하고 관리하는 역할을 합니다.
+     */
     public class UIControllerButtonManager : MonoBehaviour
     {
         public enum EControllerType
