@@ -56,8 +56,92 @@ MonoBehaviour:
       Filter: 
     Object: {fileID: 0}
     Scene:
-      Type: 0
-      Value: Assets/Mythril2D/Demo/Scenes/Maps
+      Type: 3
+      Value: 578443014e14e4a0b93ebc99cea543c6
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: fb91aba575f5c485383ad813b57237e3
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: 027f32a9c9e32564f86fa4e66a2b47ea
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: 8f36b9b25e67d3847a89c2093ee985ea
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: 0665148ed10e34c16a6a998a9e2bbe59
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: 330c2d75e374945c9aa7d09eda197326
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: a14a76969b53f0545b8b78a785b450cd
+      IncludeAssetDependencies: 1
+    AssetBundle: 
+    AddressableGroup: 
+  - Enabled: 1
+    Type: 2
+    Asset:
+      Path: 
+      Filter: 
+    Object: {fileID: 0}
+    Scene:
+      Type: 3
+      Value: 9dde25d0c38555546ba1b5077c2f7f83
       IncludeAssetDependencies: 1
     AssetBundle: 
     AddressableGroup: 
