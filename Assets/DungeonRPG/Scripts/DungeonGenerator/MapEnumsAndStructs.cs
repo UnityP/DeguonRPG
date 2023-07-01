@@ -27,11 +27,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
     {
         generateObj, generateTile, noGeneration
     };
-
-    public struct pathMaker
-    {
-        public Vector2 direction; public Vector2 position;
-    };
+    
     
     public enum EEightDirection
     {

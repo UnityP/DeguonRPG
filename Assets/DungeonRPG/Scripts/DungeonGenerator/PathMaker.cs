@@ -5,31 +5,31 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 {
     public interface IPathMaker
     {
-        Vector2Int Direction { get; }
-        Vector2Int Position { get; }
-        List<Vector2Int> PathHistory { get; }
+        Vector2 Direction { get; }
+        Vector2 Position { get; }
+        List<Vector2> PathHistory { get; }
         void Turn();
         void Move();
         void UndoMove();
         bool ShouldBeDestroyed();
     }
     
-    public class PathMaker : IPathMaker
+    public class PathMaker :  IPathMaker
     {
-        private static readonly Vector2Int[] Directions = new Vector2Int[] { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
+        private static readonly Vector2[] Directions = new Vector2[] { Vector2.up, Vector2.right, Vector2.down, Vector2.left };
 
-        private readonly RoguelikeGeneratorPro m_generatorPro;
+        public RoguelikeGeneratorPro m_generatorPro;
     
-        private Vector2Int m_direction;
+        private Vector2 m_direction;
         
-        private Vector2Int m_position;
+        private Vector2 m_position;
 
-        private List<Vector2Int> m_pathHistory;
-        
-        public Vector2Int Direction
+        private List<Vector2> m_pathHistory;
+
+        public Vector2 Direction
         {
             get => m_direction;
-            private set
+            set
             {
                 if (System.Array.IndexOf(Directions, value) == -1) 
                 {
@@ -40,10 +40,10 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             }
         }
         
-        public Vector2Int Position
+        public Vector2 Position
         {
             get => m_position;
-            private set
+            set
             {
                 value.x = Mathf.Clamp(value.x, 1, m_generatorPro.levelSizeCut.x - 2);
                 value.y = Mathf.Clamp(value.y, 1, m_generatorPro.levelSizeCut.y - 2);
@@ -51,10 +51,20 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             }
         }
     
-        public List<Vector2Int> PathHistory => m_pathHistory;
+        public List<Vector2> PathHistory => m_pathHistory;
 
+        
         public PathMaker()
         {
+            m_pathHistory = new List<Vector2>();
+        }
+        
+        public PathMaker(Vector2 newPosition, Vector2 newDir, RoguelikeGeneratorPro roguelikeGeneratorPro)
+        {
+            m_position = newPosition;
+            m_direction = newDir;
+            m_generatorPro = roguelikeGeneratorPro;
+            m_pathHistory = new List<Vector2>();
         }
         
         public PathMaker(PathMaker other)
@@ -62,15 +72,15 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             m_position = other.m_position;
             m_direction = other.m_direction;
             m_generatorPro = other.m_generatorPro;
-            m_pathHistory = new List<Vector2Int>();
+            m_pathHistory = new List<Vector2>();
         }
-        
+
         public void Turn()
         {
             Direction = TurnDirection(Direction);
         }
         
-        private Vector2Int TurnDirection(Vector2Int pathMakerDirection)
+        public Vector2 TurnDirection(Vector2 pathMakerDirection)
         {
             int randomValue = Random.Range(0, 100);
         
@@ -118,6 +128,32 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         public bool ShouldBeDestroyed()
         {
             return Random.Range(0, 100) < m_generatorPro.pathMakerDestructionChance;
+        }
+
+        public void GenerateBlock(int blockSize)
+        {
+            for (int x = 0; x < blockSize; x++)
+            {
+                for (int y = 0; y < blockSize; y++)
+                {
+                    var newX = (int)(Position.x + x);
+                    var newY = (int)(Position.y + y);
+                    if (newX > 0 && newX < m_generatorPro.tiles.GetLength(0) && newY > 0 && newY < m_generatorPro.tiles.GetLength(1))
+                    {
+                        m_generatorPro.tiles[newX, newY] = ETileType.floor; 
+                    }
+                }
+            }
+        }
+
+        public void GenerateBlock2X2()
+        {
+            GenerateBlock(2);
+        }
+
+        public void GenerateBlock3X3()
+        {
+            GenerateBlock(3);
         }
     }
     
