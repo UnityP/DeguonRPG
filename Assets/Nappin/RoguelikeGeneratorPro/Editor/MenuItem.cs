@@ -2,7 +2,7 @@
 using UnityEngine;
 
 
-namespace RoguelikeGeneratorPro
+namespace DungeonRPG.RoguelikeGeneratorPro
 {
     public class MenuTest : MonoBehaviour
     {
@@ -10,7 +10,7 @@ namespace RoguelikeGeneratorPro
         static void DoSomethingWithAShortcutKey()
         {
             RoguelikeGeneratorPro[] levelGenerators = (RoguelikeGeneratorPro[])FindObjectsOfType(typeof(RoguelikeGeneratorPro));
-            if (levelGenerators != null) for (int i = 0; i < levelGenerators.Length; i++) levelGenerators[i].ReGenerateLevel();
+            if (levelGenerators != null) for (int i = 0; i < levelGenerators.Length; i++) levelGenerators[i].RigenenerateLevel();
         }
     }
 }

@@ -1,10 +1,11 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using static RoguelikeGeneratorPro.RoguelikeGeneratorPro;
 
 
-namespace RoguelikeGeneratorPro
+
+
+namespace DungeonRPG.RoguelikeGeneratorPro
 {
     public static class BackgroundStyle
     {
@@ -540,7 +541,7 @@ namespace RoguelikeGeneratorPro
             _pathMakerRotationChance = serializedObject.FindProperty("pathMakerRotationChance");
             _pathMakerRotatesLeft = serializedObject.FindProperty("pathMakerRotatesLeft");
             _pathMakerRotatesRight = serializedObject.FindProperty("pathMakerRotatesRight");
-            _pathMakerRotatesBackwords = serializedObject.FindProperty("pathMakerRotatesBackwards");
+            _pathMakerRotatesBackwords = serializedObject.FindProperty("pathMakerRotatesBackwords");
             _pathMakerMaxDensity = serializedObject.FindProperty("pathMakerMaxDensity");
 
 
@@ -943,7 +944,7 @@ namespace RoguelikeGeneratorPro
             #region RigenerateLevel
 
             EditorGUILayout.Space();
-            if (GUILayout.Button("Regenerate Level", GUILayout.Height(26))) script.ReGenerateLevel();
+            if (GUILayout.Button("Regenerate Level", GUILayout.Height(26))) script.RigenenerateLevel();
 
             #endregion
 
@@ -991,7 +992,7 @@ namespace RoguelikeGeneratorPro
 
             #region PathMakerRotatesBackwords
 
-            _pathMakerRotatesBackwords.floatValue = EditorGUILayout.Slider("Rotates Backwards", script.pathMakerRotatesBackwards, 0f, 100f);
+            _pathMakerRotatesBackwords.floatValue = EditorGUILayout.Slider("Rotates Backwords", script.pathMakerRotatesBackwords, 0f, 100f);
 
             #endregion
 
@@ -1040,7 +1041,7 @@ namespace RoguelikeGeneratorPro
 
             #region PatternFloor
 
-            _patternFloor.intValue = (int)(patternType)EditorGUILayout.EnumPopup("Pattern", script.patternFloor);
+            _patternFloor.intValue = (int)(EPatternType)EditorGUILayout.EnumPopup("Pattern", script.patternFloor);
 
             #endregion
 
@@ -1067,7 +1068,7 @@ namespace RoguelikeGeneratorPro
 
             #region PatternWall
 
-            _patternWall.intValue = (int)(patternType)EditorGUILayout.EnumPopup("Pattern", script.patternWall);
+            _patternWall.intValue = (int)(EPatternType)EditorGUILayout.EnumPopup("Pattern", script.patternWall);
 
             #endregion
 
@@ -1125,9 +1126,9 @@ namespace RoguelikeGeneratorPro
                 _generation.intValue = 0;
 
 
-                DrawEmpty(genType.generateObj);
-                DrawFloorPatternOverlayTiles(genType.generateObj);
-                DrawFloorRandomOverlayTiles(genType.generateObj);
+                DrawEmpty(EGenType.generateObj);
+                DrawFloorPatternOverlayTiles(EGenType.generateObj);
+                DrawFloorRandomOverlayTiles(EGenType.generateObj);
 
 
                 #region DrawTilesOrientation
@@ -1732,7 +1733,7 @@ namespace RoguelikeGeneratorPro
 
                 #region RotateLevel
 
-                _rotateLevel.intValue = (int)(patternType)EditorGUILayout.EnumPopup("Level Rotation", script.levelRot);
+                _rotateLevel.intValue = (int)(EPatternType)EditorGUILayout.EnumPopup("Level Rotation", script.levelRot);
 
                 #endregion
             }
@@ -1741,9 +1742,9 @@ namespace RoguelikeGeneratorPro
                 _generation.intValue = 1;
 
 
-                DrawEmpty(genType.generateTile);
-                DrawFloorPatternOverlayTiles(genType.generateTile);
-                DrawFloorRandomOverlayTiles(genType.generateTile);
+                DrawEmpty(EGenType.generateTile);
+                DrawFloorPatternOverlayTiles(EGenType.generateTile);
+                DrawFloorRandomOverlayTiles(EGenType.generateTile);
 
 
                 #region DrawTilesOrientation
@@ -2253,7 +2254,7 @@ namespace RoguelikeGeneratorPro
             }
             else _generation.intValue = 2;
 
-            script.generation = (genType)_generation.intValue;
+            script.generation = (EGenType)_generation.intValue;
             EditorGUILayout.Space(40);
 
             EditorGUILayout.EndVertical();
@@ -2261,7 +2262,7 @@ namespace RoguelikeGeneratorPro
         }
 
 
-        private void DrawEmpty(genType _generation)
+        private void DrawEmpty(EGenType _generation)
         {
             EditorGUILayout.Space(30);
 
@@ -2278,7 +2279,7 @@ namespace RoguelikeGeneratorPro
                 EditorGUILayout.BeginVertical();
                 GUILayout.Label("Empty Tile", alignGUILeft, GUILayout.ExpandWidth(true));
 
-                if(_generation == genType.generateObj) _emptyTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.emptyTileObj, typeof(GameObject), true) as GameObject;
+                if(_generation == EGenType.generateObj) _emptyTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.emptyTileObj, typeof(GameObject), true) as GameObject;
                 else _emptyTile.objectReferenceValue = EditorGUILayout.ObjectField(script.emptyTile, typeof(Tile), true) as Tile;
 
                 EditorGUILayout.EndVertical();
@@ -2293,7 +2294,7 @@ namespace RoguelikeGeneratorPro
         }
 
 
-        private void DrawFloorPatternOverlayTiles(genType _generation)
+        private void DrawFloorPatternOverlayTiles(EGenType _generation)
         {
             EditorGUILayout.Space(30);
 
@@ -2311,7 +2312,7 @@ namespace RoguelikeGeneratorPro
                 EditorGUILayout.BeginVertical();
                 GUILayout.Label("Floor Pattern Tile", alignGUILeft, GUILayout.ExpandWidth(true));
                 
-                if(_generation == genType.generateObj) _patternFloorTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.patternFloorTileObj, typeof(GameObject), true) as GameObject;
+                if(_generation == EGenType.generateObj) _patternFloorTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.patternFloorTileObj, typeof(GameObject), true) as GameObject;
                 else _patternFloorTile.objectReferenceValue = EditorGUILayout.ObjectField(script.patternFloorTile, typeof(Tile), true) as Tile;
 
                 EditorGUILayout.EndVertical();
@@ -2325,7 +2326,7 @@ namespace RoguelikeGeneratorPro
         }
 
 
-        private void DrawFloorRandomOverlayTiles(genType _generation)
+        private void DrawFloorRandomOverlayTiles(EGenType _generation)
         {
             EditorGUILayout.Space(30);
 
@@ -2343,7 +2344,7 @@ namespace RoguelikeGeneratorPro
                 EditorGUILayout.BeginVertical();
                 GUILayout.Label("Floor Random Tile", alignGUILeft, GUILayout.ExpandWidth(true));
 
-                if (_generation == genType.generateObj) _randomFloorTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.randomFloorTileObj, typeof(GameObject), true) as GameObject;
+                if (_generation == EGenType.generateObj) _randomFloorTileObj.objectReferenceValue = EditorGUILayout.ObjectField(script.randomFloorTileObj, typeof(GameObject), true) as GameObject;
                 else _randomFloorTile.objectReferenceValue = EditorGUILayout.ObjectField(script.randomFloorTile, typeof(Tile), true) as Tile;
 
                 EditorGUILayout.EndVertical();

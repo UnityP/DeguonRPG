@@ -26,8 +26,8 @@ namespace Gyvr.Mythril2D
 
     public enum EMovementMode
     {
-        Bidirectional,
-        Polydirectional
+        Bidirectional, //양방향
+        Polydirectional //다방향
     }
 
     public enum EDirection
@@ -455,44 +455,56 @@ namespace Gyvr.Mythril2D
         // TODO: Make prettier
         private void FixedUpdate()
         {
+            // 캐릭터가 밀리고 있는지 확인
             if (m_pushed)
             {
+                // 밀기 강도가 0.1보다 높으면 밀기 방향으로 캐릭터를 계속 이동합니다.
                 if (m_pushIntensity > 0.1f)
                 {
+                    // 밀기 강도로 밀기 방향으로 캐릭터 이동
                     TryMove(m_pushDirection, m_pushIntensity);
+                    // 시간이 지남에 따라 밀기 강도를 줄이고 저항을 적용합니다.
                     m_pushIntensity = Mathf.Lerp(m_pushIntensity, 0.0f, Time.fixedDeltaTime * m_pushResistance);
                 }
                 else
                 {
+                    // 누르기 강도가 0.1 이하로 떨어지면 캐릭터 누르기를 멈춥니다.
                     m_pushed = false;
                 }
             }
+            
+            m_lastSuccessfullMoveDirection = Vector2.zero; // 마지막으로 성공한 이동 방향 재설정
 
-            m_lastSuccessfullMoveDirection = Vector2.zero;
-
+            // 캐릭터가 움직일 수 있고 밀리지 않는지 확인하십시오.
             if (Can(EActionFlags.Move) && !m_pushed)
             {
-                // If movement input is not 0, try to move
+                // 이동 입력이 있는지 확인
                 if (m_movementDirection != Vector2.zero)
                 {
+                    // 입력 방향으로 문자를 이동해 봅니다.
                     bool success = TryMove(m_movementDirection, m_moveSpeed);
 
+                    // 이동에 실패한 경우 x축 방향으로만 이동 시도
                     if (!success)
                     {
                         success = TryMove(new Vector2(m_movementDirection.x, 0), m_moveSpeed);
                     }
 
+                    // 여전히 이동이 실패하면 y축 방향으로만 이동을 시도합니다.
                     if (!success)
                     {
                         TryMove(new Vector2(0, m_movementDirection.y), m_moveSpeed);
                     }
                 }
 
+                // 이동 입력의 x 구성 요소를 기준으로 캐릭터의 시선 방향 설정
                 SetLookAtDirection(m_movementDirection.x);
             }
 
+            // 캐릭터의 이동 여부에 따라 캐릭터의 이동 애니메이션 설정
             m_animator.SetBool(m_isMovingAnimationParameter, m_lastSuccessfullMoveDirection.magnitude > 0.0f);
 
+            // 캐릭터의 이동 모드가 다방향인 경우 애니메이션 이동의 x 및 y 구성 요소를 설정합니다.
             if (m_movementMode == EMovementMode.Polydirectional)
             {
                 m_animator.SetFloat(m_moveXAnimationParameter, m_lastSuccessfullMoveDirection.x);
