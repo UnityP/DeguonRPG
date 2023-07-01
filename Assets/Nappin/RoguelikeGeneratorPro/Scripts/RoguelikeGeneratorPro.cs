@@ -6,7 +6,7 @@ using UnityEngine.Tilemaps;
 
 namespace DungeonRPG.RoguelikeGeneratorPro
 {
-     public class RoguelikeGeneratorPro : MonoBehaviour
+    public class RoguelikeGeneratorPro : MonoBehaviour
     {
         #region Variables
         
@@ -387,20 +387,29 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         {
             Setup();
             
-            GenerateFloor();
+            GenerateFloor(); //Path Maker
+            
             GenerateWall();
 
-            if (drawFloorOverlayRandomTiles) InstanciateFloorRandomOverlay();
-            if (drawWallOverlayRandomTiles) InstanciateWallRandomOverlay();
-            if (drawFloorOverlayPatternTiles) InstanciateFloorOverlay();
-            if (drawWallOverlayPatternTiles) InstanciateWallOverlay();
+            if (drawFloorOverlayRandomTiles) 
+                InstanciateFloorRandomOverlay();
+            if (drawWallOverlayRandomTiles)
+                InstanciateWallRandomOverlay();
+            if (drawFloorOverlayPatternTiles)
+                InstanciateFloorOverlay();
+            if (drawWallOverlayPatternTiles)
+                InstanciateWallOverlay();
 
-            if(generation != EGenType.noGeneration) Spawn();
+            if(generation != EGenType.noGeneration)
+                Spawn();
 
-            if (generation == EGenType.generateObj && createLevelSizedFloorCollider) GenerateFloorCollider();
-            else if (generation == EGenType.generateTile && createWallGridCollider) GenerateWallTileCollider();
+            if (generation == EGenType.generateObj && createLevelSizedFloorCollider)
+                GenerateFloorCollider();
+            else if (generation == EGenType.generateTile && createWallGridCollider)
+                GenerateWallTileCollider();
 
-            if (generation == EGenType.generateObj && createWall2DCompositeCollider) GenerateWallCompositeCollider2D();
+            if (generation == EGenType.generateObj && createWall2DCompositeCollider) 
+                GenerateWallCompositeCollider2D();
         }
 
         #endregion
@@ -410,7 +419,6 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         private void Setup()
         {
-            
             InitializeLeveSetting();
 
             CalculatePathMakerRotateChance();
@@ -593,12 +601,14 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 }
 
                 //generate floor
-                IteratePathMakers();
-                GenerateBlock();
-                MovePathMakers();
+                IteratePathMakers();  //패스메이커 삭제 , 패스메키어 회전, 패스메이커 스폰
+                GenerateBlock(); //청크찬스에 따라서 현재 패스메이커들의 위치에서 2*2 또는 3*3 블럭을 생성
+                MovePathMakers(); //패스메이커들을 이동시킴
 
                 //check loop
-                if ((float)TileTypeNumber(ETileType.floor) * 100f / (float)tiles.Length > percentLevelToFill) break;
+                if ((float)TileTypeNumber(ETileType.floor) * 100f / (float)tiles.Length > percentLevelToFill)
+                    break;
+                
                 iterationsNum++;
             }
         }
@@ -661,38 +671,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 pathMakers[i].Move();
             }
         }
-
-
-        private Vector2 TurnPathMakers(Vector2 _pathMakerDirection)
-        {
-            int randomValue = Random.Range(0, 100);
-
-            float chanceLeft = pathMakerRotatesLeft;
-            float chanceRight = chanceLeft + pathMakerRotatesRight;
-
-            if (randomValue <= chanceLeft)
-            {
-                if (_pathMakerDirection == Vector2.up) return Vector2.left;
-                else if (_pathMakerDirection == Vector2.left) return Vector2.down;
-                else if (_pathMakerDirection == Vector2.down) return Vector2.right;
-                else return Vector2.up;
-            }
-            else if (randomValue <= chanceRight)
-            {
-                if (_pathMakerDirection == Vector2.up) return Vector2.right;
-                else if (_pathMakerDirection == Vector2.left) return Vector2.up;
-                else if (_pathMakerDirection == Vector2.down) return Vector2.left;
-                else return Vector2.down;
-            }
-            else
-            {
-                if (_pathMakerDirection == Vector2.up) return Vector2.down;
-                else if (_pathMakerDirection == Vector2.left) return Vector2.right;
-                else if (_pathMakerDirection == Vector2.down) return Vector2.up;
-                else return Vector2.left;
-            }
-        }
-
+        
         #endregion
 
 
@@ -706,20 +685,36 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 {
                     if (tiles[x, y] == ETileType.floor)
                     {
-                        if (tiles[x + 1, y] == ETileType.empty) tiles[x + 1, y] = ETileType.wall;
-                        if (tiles[x + 1, y + 1] == ETileType.empty && spawnCornerWalls) tiles[x + 1, y + 1] = ETileType.wall;
-                        if (tiles[x, y + 1] == ETileType.empty) tiles[x, y + 1] = ETileType.wall;
-                        if (tiles[x - 1, y + 1] == ETileType.empty && spawnCornerWalls) tiles[x - 1, y + 1] = ETileType.wall;
-                        if (tiles[x - 1, y] == ETileType.empty) tiles[x - 1, y] = ETileType.wall;
-                        if (tiles[x - 1, y - 1] == ETileType.empty && spawnCornerWalls) tiles[x - 1, y - 1] = ETileType.wall;
-                        if (tiles[x, y - 1] == ETileType.empty) tiles[x, y - 1] = ETileType.wall;
-                        if (tiles[x + 1, y - 1] == ETileType.empty && spawnCornerWalls) tiles[x + 1, y - 1] = ETileType.wall;
+                        if (tiles[x + 1, y] == ETileType.empty) 
+                            tiles[x + 1, y] = ETileType.wall;
+                        
+                        if (tiles[x + 1, y + 1] == ETileType.empty && spawnCornerWalls) 
+                            tiles[x + 1, y + 1] = ETileType.wall;
+                        
+                        if (tiles[x, y + 1] == ETileType.empty)
+                            tiles[x, y + 1] = ETileType.wall;
+                        
+                        if (tiles[x - 1, y + 1] == ETileType.empty && spawnCornerWalls) 
+                            tiles[x - 1, y + 1] = ETileType.wall;
+                        
+                        if (tiles[x - 1, y] == ETileType.empty) 
+                            tiles[x - 1, y] = ETileType.wall;
+                        
+                        if (tiles[x - 1, y - 1] == ETileType.empty && spawnCornerWalls) 
+                            tiles[x - 1, y - 1] = ETileType.wall;
+                        
+                        if (tiles[x, y - 1] == ETileType.empty) 
+                            tiles[x, y - 1] = ETileType.wall;
+                        
+                        if (tiles[x + 1, y - 1] == ETileType.empty && spawnCornerWalls)
+                            tiles[x + 1, y - 1] = ETileType.wall;
                     }
                 }
             }
 
             RemoveIsolatedWalls();
-            if (removeUnnaturalWalls) RemoveUnnaturalWalls();
+            if (removeUnnaturalWalls) 
+                RemoveUnnaturalWalls();
         }
 
 
@@ -733,8 +728,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 }
             }
         }
-
-
+        
         private void RemoveUnnaturalWalls()
         {
             for (int x = 1; x < levelSizeCut.x - 1; x++)
@@ -1327,8 +1321,10 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             Tilemap floorMap = floorParent.GetComponent<Tilemap>();
             Tilemap wallMap = wallParent.GetComponent<Tilemap>();
 
-            if (drawFloorOverlayPatternTiles || drawFloorOverlayRandomTiles || drawWallOverlayPatternTiles || drawWallOverlayRandomTiles) overlayMap = overlayParent.GetComponent<Tilemap>();
-            if (drawEmptyTiles) emptyMap = emptyParent.GetComponent<Tilemap>();
+            if (drawFloorOverlayPatternTiles || drawFloorOverlayRandomTiles || drawWallOverlayPatternTiles || drawWallOverlayRandomTiles) 
+                overlayMap = overlayParent.GetComponent<Tilemap>();
+            if (drawEmptyTiles)
+                emptyMap = emptyParent.GetComponent<Tilemap>();
 
 
             //instanciate
