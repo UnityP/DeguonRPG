@@ -6,11 +6,9 @@ using UnityEngine.Tilemaps;
 
 namespace DungeonRPG.RoguelikeGeneratorPro
 {
-    
-    public class RoguelikeGeneratorPro : MonoBehaviour
+     public class RoguelikeGeneratorPro : MonoBehaviour
     {
         #region Variables
-
         
         //Level dimensions
         public Vector2Int levelSize = new Vector2Int(80, 80);
@@ -354,10 +352,10 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
 
         //PRIVATE
-        private ETileType[,] tiles;
+        public ETileType[,] tiles;
         private EOverlayType[,] overlayTiles;
 
-        private List<pathMaker> pathMakers;
+        private List<PathMaker> pathMakers;
         public Vector2Int levelSizeCut;
         private float iterationsMax = 100000;
 
@@ -412,7 +410,31 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         private void Setup()
         {
-            //fix variables
+            
+            InitializeLeveSetting();
+
+            CalculatePathMakerRotateChance();
+            
+            CalculatePathMakerBlock();
+            
+            //create level parents
+            if (generation == EGenType.generateObj)
+                CreateObjParents();
+            else 
+                CreateTilesParents();
+
+            
+            pathMakers = new List<PathMaker>();
+            Vector2 newPosition = new Vector2(Mathf.RoundToInt(levelSizeCut.x / 2.0f), Mathf.RoundToInt(levelSizeCut.y / 2.0f));
+            PathMaker newPathMaker = new PathMaker(newPosition, Vector2.up, this);
+            newPathMaker.Turn();
+            pathMakers.Add(newPathMaker);
+            
+            this.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        }
+
+        private void InitializeLeveSetting()
+        {
             levelSizeCut = new Vector2Int(levelSize.x - 2, levelSize.y - 2);
 
             if (levelSizeCut.x < 4)
@@ -420,43 +442,45 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 levelSizeCut.x = 4;
                 levelSize.x = 6;
             }
+
             if (levelSizeCut.y < 4)
             {
                 levelSizeCut.y = 4;
                 levelSize.y = 6;
             }
+            
+            tiles = new ETileType[levelSize.x, levelSize.y];
+            overlayTiles = new EOverlayType[levelSize.x, levelSize.y];
 
-            //recaulculate chanches rotation
+            for (int x = 0; x < levelSize.x; x++)
+            {
+                for (int y = 0; y < levelSize.y; y++)
+                {
+                    tiles[x, y] = ETileType.empty;
+                }
+            }
+            for (int x = 0; x < levelSize.x; x++)
+            {
+                for (int y = 0; y < levelSize.y; y++)
+                {
+                    overlayTiles[x, y] = EOverlayType.empty;
+                }
+            }
+        }
+
+        private void CalculatePathMakerBlock()
+        {
+            float totalBlockChances = chunkChance2x2 + chunkChance3x3;
+            chunkChance2x2 = chunkChance2x2 * 100 / totalBlockChances;
+            chunkChance3x3 = chunkChance3x3 * 100 / totalBlockChances;
+        }
+
+        private void CalculatePathMakerRotateChance()
+        {
             float totalChances = pathMakerRotatesLeft + pathMakerRotatesRight + pathMakerRotatesBackwords;
             pathMakerRotatesLeft = pathMakerRotatesLeft * 100f / totalChances;
             pathMakerRotatesRight = pathMakerRotatesRight * 100f / totalChances;
             pathMakerRotatesBackwords = pathMakerRotatesBackwords * 100f / totalChances;
-
-            //recalculate chances 2x2 and 3x3
-            float totalBlockChances = chunkChance2x2 + chunkChance3x3;
-            chunkChance2x2 = chunkChance2x2 * 100 / totalBlockChances;
-            chunkChance3x3 = chunkChance3x3 * 100 / totalBlockChances;
-
-            //reset rotation
-            this.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
-
-            //create level parents
-            if (generation == EGenType.generateObj) CreateObjParents();
-            else CreateTilesParents();
-
-            //instanciate tiles
-            tiles = new ETileType[levelSize.x, levelSize.y];
-            overlayTiles = new EOverlayType[levelSize.x, levelSize.y];
-
-            for (int x = 0; x < levelSize.x; x++) for (int y = 0; y < levelSize.y; y++) tiles[x, y] = ETileType.empty;
-            for (int x = 0; x < levelSize.x; x++) for (int y = 0; y < levelSize.y; y++) overlayTiles[x, y] = EOverlayType.empty;
-
-            //create first pathMaker
-            pathMakers = new List<pathMaker>();
-            pathMaker newGenerator = new pathMaker();
-            newGenerator.direction = TurnPathMakers(Vector2.up);
-            newGenerator.position = new Vector2(Mathf.RoundToInt(levelSizeCut.x / 2.0f), Mathf.RoundToInt(levelSizeCut.y / 2.0f));
-            pathMakers.Add(newGenerator);
         }
 
 
@@ -563,7 +587,10 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             while (iterationsNum < iterationsMax)
             {
                 //assign floor
-                for (int i = 0; i < pathMakers.Count; i++) tiles[(int)pathMakers[i].position.x, (int)pathMakers[i].position.y] = ETileType.floor;
+                for (int i = 0; i < pathMakers.Count; i++)
+                {
+                    tiles[(int)pathMakers[i].Position.x, (int)pathMakers[i].Position.y] = ETileType.floor;
+                }
 
                 //generate floor
                 IteratePathMakers();
@@ -578,30 +605,29 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         private void IteratePathMakers()
         {
-            for (int i = 0; i < pathMakers.Count; i++)
+            for (int i = pathMakers.Count - 1; i >= 0; i--)
             {
+                PathMaker currentPathMaker = pathMakers[i];
+                
                 //destroy
                 if (Random.Range(0, 100) < pathMakerDestructionChance && pathMakers.Count > 1)
                 {
                     pathMakers.RemoveAt(i);
-                    break;
+                    continue;
                 }
 
                 //turn
                 if (Random.Range(0, 100) < pathMakerRotationChance)
                 {
-                    pathMaker currentPathMaker = pathMakers[i];
-                    currentPathMaker.direction = TurnPathMakers(currentPathMaker.direction);
-                    pathMakers[i] = currentPathMaker;
+                    currentPathMaker.Turn();
                 }
 
                 //spawn
                 if (Random.Range(0, 100) < pathMakerSpawnChance && pathMakers.Count < pathMakerMaxDensity)
                 {
-                    pathMaker currentPathMaker = new pathMaker();
-                    currentPathMaker.direction = TurnPathMakers(pathMakers[i].direction);
-                    currentPathMaker.position = pathMakers[i].position;
-                    pathMakers.Add(currentPathMaker);
+                    PathMaker newPathMaker = new PathMaker(currentPathMaker);
+                    newPathMaker.Turn();
+                    pathMakers.Add(newPathMaker);
                 }
             }
         }
@@ -612,24 +638,16 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 if (Random.Range(0, 100) < chunkSpawnChance)
                 {
-                    pathMaker currentPathMaker = pathMakers[i];
+                    PathMaker currentPathMaker = pathMakers[i];
 
                     if (Random.Range(0, 100) < chunkChance2x2)
                     {
-                        tiles[(int)currentPathMaker.position.x + 1, (int)currentPathMaker.position.y] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 1, (int)currentPathMaker.position.y + 1] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x, (int)currentPathMaker.position.y + 1] = ETileType.floor;
+                        currentPathMaker.GenerateBlock2X2();
                     }
                     else
                     {
-                        tiles[(int)currentPathMaker.position.x + 1, (int)currentPathMaker.position.y] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 2, (int)currentPathMaker.position.y] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x, (int)currentPathMaker.position.y + 1] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 1, (int)currentPathMaker.position.y + 1] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 2, (int)currentPathMaker.position.y + 1] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x, (int)currentPathMaker.position.y + 2] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 1, (int)currentPathMaker.position.y + 2] = ETileType.floor;
-                        tiles[(int)currentPathMaker.position.x + 2, (int)currentPathMaker.position.y + 2] = ETileType.floor;
+                        currentPathMaker.GenerateBlock3X3();
+                 
                     }
                 }
             }
@@ -640,14 +658,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         {
             for (int i = 0; i < pathMakers.Count; i++)
             {
-                //move
-                pathMaker currentPathMaker = pathMakers[i];
-                currentPathMaker.position += currentPathMaker.direction;
-
-                //avoid border
-                currentPathMaker.position.x = Mathf.Clamp(currentPathMaker.position.x, 1, levelSizeCut.x - 2);
-                currentPathMaker.position.y = Mathf.Clamp(currentPathMaker.position.y, 1, levelSizeCut.y - 2);
-                pathMakers[i] = currentPathMaker;
+                pathMakers[i].Move();
             }
         }
 
