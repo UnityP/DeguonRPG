@@ -140,7 +140,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                     var newY = (int)(Position.y + y);
                     if (newX > 0 && newX < m_generatorPro.tiles.GetLength(0) && newY > 0 && newY < m_generatorPro.tiles.GetLength(1))
                     {
-                        m_generatorPro.tiles[newX, newY] = ETileType.floor; 
+                        m_generatorPro.tiles[newX, newY].TileType = ETileType.Floor; 
                     }
                 }
             }

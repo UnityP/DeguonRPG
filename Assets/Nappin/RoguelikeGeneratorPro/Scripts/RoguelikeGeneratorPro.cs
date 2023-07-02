@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
+using Random = UnityEngine.Random;
 
 
 namespace DungeonRPG.RoguelikeGeneratorPro
@@ -9,6 +11,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
     public class RoguelikeGeneratorPro : MonoBehaviour
     {
         #region Variables
+        
+        public Dictionary<EDirectionPattern, Tile> wallPatternToTileDictionary;
         
         //Level dimensions
         public Vector2Int levelSize = new Vector2Int(80, 80);
@@ -46,12 +50,10 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         public EPatternType patternWall = EPatternType.checker;
         public Vector2 noiseScaleWall = new Vector2(0.1f, 0.1f);
         public float noiseCutoffWall = 0.5f;
-
-
+        
         //Random floor overlay
         public int randomFloorOverlayChance = 1;
-
-
+        
         //Random wall overlay
         public int randomWallOverlayChance = 1;
 
@@ -205,7 +207,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         public Tile emptyTile;
         public Tile patternFloorTile;
         public Tile randomFloorTile;
-
+        
         public Tile floorTile_1;
         public Tile floorTile_2;
         public Tile floorTile_3;
@@ -352,7 +354,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
 
         //PRIVATE
-        public ETileType[,] tiles;
+        public DungeonTile[,] tiles;
         private EOverlayType[,] overlayTiles;
 
         private List<PathMaker> pathMakers;
@@ -364,7 +366,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         private GameObject wallParent;
         private GameObject emptyParent;
         private GameObject overlayParent;
-
+        
+        
         #endregion
 
 
@@ -392,13 +395,13 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             GenerateWall();
 
             if (drawFloorOverlayRandomTiles) 
-                InstanciateFloorRandomOverlay();
+                InstantiateFloorRandomOverlay();
             if (drawWallOverlayRandomTiles)
-                InstanciateWallRandomOverlay();
+                InstantiateWallRandomOverlay();
             if (drawFloorOverlayPatternTiles)
                 InstanciateFloorOverlay();
             if (drawWallOverlayPatternTiles)
-                InstanciateWallOverlay();
+                InstantiateWallOverlay();
 
             if(generation != EGenType.noGeneration)
                 Spawn();
@@ -457,23 +460,63 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 levelSize.y = 6;
             }
             
-            tiles = new ETileType[levelSize.x, levelSize.y];
+            
+            tiles = new DungeonTile[levelSize.x, levelSize.y]; // DungeonTile 개체로 타일 초기화
             overlayTiles = new EOverlayType[levelSize.x, levelSize.y];
 
             for (int x = 0; x < levelSize.x; x++)
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    tiles[x, y] = ETileType.empty;
+                    tiles[x, y] = new DungeonTile(x, y, ETileType.Empty);
+                    overlayTiles[x, y] = EOverlayType.empty;
                 }
             }
+
+            InitializeTileNeighbors();
+        }
+        
+        private void InitializeTileNeighbors()
+        {
             for (int x = 0; x < levelSize.x; x++)
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    overlayTiles[x, y] = EOverlayType.empty;
+                    DungeonTile tile = tiles[x, y];
+
+                    foreach (EEightDirection direction in Enum.GetValues(typeof(EEightDirection)))
+                    {
+                        DungeonTile neighbor = GetNeighborTile(x, y, direction);
+                        if (neighbor != null)
+                        {
+                            tile.SetNeighbor(direction, neighbor);
+                        }
+                    }
                 }
             }
+        }
+        
+        private DungeonTile GetNeighborTile(int x, int y, EEightDirection direction)
+        {
+            int neighborX = x, neighborY = y;
+            switch (direction)
+            {
+                case EEightDirection.Top: neighborY++; break;
+                case EEightDirection.TopRight: neighborX++; neighborY++; break;
+                case EEightDirection.Right: neighborX++; break;
+                case EEightDirection.BottomRight: neighborX++; neighborY--; break;
+                case EEightDirection.Bottom: neighborY--; break;
+                case EEightDirection.BottomLeft: neighborX--; neighborY--; break;
+                case EEightDirection.Left: neighborX--; break;
+                case EEightDirection.TopLeft: neighborX--; neighborY++; break;
+            }
+
+            if (neighborX >= 0 && neighborY >= 0 && neighborX < levelSize.x && neighborY < levelSize.y)
+            {
+                return tiles[neighborX, neighborY];
+            }
+           
+            return null;
         }
 
         private void CalculatePathMakerBlock()
@@ -597,7 +640,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 //assign floor
                 for (int i = 0; i < pathMakers.Count; i++)
                 {
-                    tiles[(int)pathMakers[i].Position.x, (int)pathMakers[i].Position.y] = ETileType.floor;
+                    tiles[(int)pathMakers[i].Position.x, (int)pathMakers[i].Position.y].TileType = ETileType.Floor;
                 }
 
                 //generate floor
@@ -606,7 +649,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 MovePathMakers(); //패스메이커들을 이동시킴
 
                 //check loop
-                if ((float)TileTypeNumber(ETileType.floor) * 100f / (float)tiles.Length > percentLevelToFill)
+                if ((float)TileTypeNumber(ETileType.Floor) * 100f / (float)tiles.Length > percentLevelToFill)
                     break;
                 
                 iterationsNum++;
@@ -683,36 +726,36 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 for (int y = 0; y < levelSize.y - 1; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor)
+                    DungeonTile currentTile = tiles[x, y];
+                    
+                    if (currentTile.TileType != ETileType.Floor) 
+                        continue;
+                    
+                    foreach (EEightDirection direction in Enum.GetValues(typeof(EEightDirection)))
                     {
-                        if (tiles[x + 1, y] == ETileType.empty) 
-                            tiles[x + 1, y] = ETileType.wall;
-                        
-                        if (tiles[x + 1, y + 1] == ETileType.empty && spawnCornerWalls) 
-                            tiles[x + 1, y + 1] = ETileType.wall;
-                        
-                        if (tiles[x, y + 1] == ETileType.empty)
-                            tiles[x, y + 1] = ETileType.wall;
-                        
-                        if (tiles[x - 1, y + 1] == ETileType.empty && spawnCornerWalls) 
-                            tiles[x - 1, y + 1] = ETileType.wall;
-                        
-                        if (tiles[x - 1, y] == ETileType.empty) 
-                            tiles[x - 1, y] = ETileType.wall;
-                        
-                        if (tiles[x - 1, y - 1] == ETileType.empty && spawnCornerWalls) 
-                            tiles[x - 1, y - 1] = ETileType.wall;
-                        
-                        if (tiles[x, y - 1] == ETileType.empty) 
-                            tiles[x, y - 1] = ETileType.wall;
-                        
-                        if (tiles[x + 1, y - 1] == ETileType.empty && spawnCornerWalls)
-                            tiles[x + 1, y - 1] = ETileType.wall;
+                        DungeonTile neighborTile = currentTile.GetNeighborTile(direction);
+
+                        if (neighborTile != null && neighborTile.TileType == ETileType.Empty)
+                        {
+                            if (direction == EEightDirection.TopLeft || direction == EEightDirection.BottomLeft ||
+                                direction == EEightDirection.TopRight || direction == EEightDirection.BottomRight)
+                            {
+                                if (spawnCornerWalls)
+                                {
+                                    neighborTile.TileType = ETileType.Wall;
+                                }
+                            }
+                            else
+                            {
+                                neighborTile.TileType = ETileType.Wall;
+                            }
+                        }
                     }
                 }
             }
 
             RemoveIsolatedWalls();
+            
             if (removeUnnaturalWalls) 
                 RemoveUnnaturalWalls();
         }
@@ -720,22 +763,57 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         private void RemoveIsolatedWalls()
         {
+            EEightDirection[] checkDirections =
+                { EEightDirection.Top, EEightDirection.Bottom, EEightDirection.Left, EEightDirection.Right };
+
             for (int x = 0; x < levelSize.x - 1; x++)
             {
                 for (int y = 0; y < levelSize.y - 1; y++)
                 {
-                    if (tiles[x, y] == ETileType.wall && tiles[x + 1, y] == ETileType.floor && tiles[x, y + 1] == ETileType.floor && tiles[x - 1, y] == ETileType.floor && tiles[x, y - 1] == ETileType.floor) tiles[x, y] = ETileType.floor;
+                    DungeonTile currentTile = tiles[x, y];
+                    if (currentTile.TileType == ETileType.Wall) 
+                        continue;
+                    
+                    bool allNeighborsAreFloors = true;
+                    foreach (EEightDirection direction in checkDirections)
+                    {
+                        DungeonTile neighbor = currentTile.GetNeighborTile(direction);
+                        if (neighbor != null && neighbor.TileType != ETileType.Floor)
+                        {
+                            allNeighborsAreFloors = false;
+                            break;
+                        }
+                    }
+                    if (allNeighborsAreFloors)
+                        currentTile.TileType = ETileType.Floor;
                 }
             }
         }
-        
+
         private void RemoveUnnaturalWalls()
         {
             for (int x = 1; x < levelSizeCut.x - 1; x++)
             {
                 for (int y = 1; y < levelSizeCut.y - 1; y++)
                 {
-                    if (tiles[x, y] == ETileType.wall && tiles[x + 1, y] != ETileType.empty && tiles[x + 1, y + 1] != ETileType.empty && tiles[x, y + 1] != ETileType.empty && tiles[x - 1, y + 1] != ETileType.empty && tiles[x - 1, y] != ETileType.empty && tiles[x - 1, y - 1] != ETileType.empty && tiles[x, y - 1] != ETileType.empty && tiles[x + 1, y - 1] != ETileType.empty) tiles[x, y] = ETileType.floor;
+                    
+                    DungeonTile currentTile = tiles[x, y];
+            
+                    if (currentTile.TileType != ETileType.Wall) 
+                        continue;
+                    
+                    bool allNeighborsNotEmpty = true;
+                    foreach (EEightDirection direction in Enum.GetValues(typeof(EEightDirection)))
+                    {
+                        DungeonTile neighbor = currentTile.GetNeighborTile(direction);
+                        if (neighbor != null && neighbor.TileType == ETileType.Empty)
+                        {
+                            allNeighborsNotEmpty = false;
+                            break;
+                        }
+                    }
+                    if (allNeighborsNotEmpty)
+                        currentTile.TileType = ETileType.Floor;
                 }
             }
         }
@@ -759,19 +837,23 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 }
             }
         }
-
-
-        public void InstanciateWallOverlay()
+        
+        public void InstantiateWallOverlay()
         {
             for (int x = 0; x < levelSize.x - 1; x++)
             {
                 for (int y = 0; y < levelSize.y - 1; y++)
                 {
-                    if (patternWall == EPatternType.perlinNoise && tiles[x, y] == ETileType.wall) CreatePerlinWall(x, y);
-                    else if (patternWall == EPatternType.checker && tiles[x, y] == ETileType.wall) CreateCheckerWall(x, y);
-                    else if (patternWall == EPatternType.wideChecker && tiles[x, y] == ETileType.wall) CreateWideCheckerWall(x, y);
-                    else if (patternWall == EPatternType.lineLeft && tiles[x, y] == ETileType.wall) CreateLineLeftWall(x, y);
-                    else if (patternWall == EPatternType.lineRight && tiles[x, y] == ETileType.wall) CreateLineRightWall(x, y);
+                    if (patternWall == EPatternType.perlinNoise && tiles[x, y].TileType == ETileType.Wall) 
+                        CreatePerlinWall(x, y);
+                    else if (patternWall == EPatternType.checker && tiles[x, y].TileType == ETileType.Wall)
+                        CreateCheckerWall(x, y);
+                    else if (patternWall == EPatternType.wideChecker && tiles[x, y].TileType == ETileType.Wall)
+                        CreateWideCheckerWall(x, y);
+                    else if (patternWall == EPatternType.lineLeft && tiles[x, y].TileType == ETileType.Wall)
+                        CreateLineLeftWall(x, y);
+                    else if (patternWall == EPatternType.lineRight && tiles[x, y].TileType == ETileType.Wall)
+                        CreateLineRightWall(x, y);
                 }
             }
         }
@@ -858,34 +940,36 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         }
 
 
-        public void CreateLineRightWall(int _posX, int _posY)
+        public void CreateLineRightWall(int posX, int posY)
         {
-            float value = Mathf.PerlinNoise(_posX * noiseScaleWall.y + Random.Range(0f, 1f) * noiseScaleWall.x, _posY * noiseScaleWall.y + Random.Range(0f, 1f) * noiseScaleWall.y);
+            float value = Mathf.PerlinNoise(posX * noiseScaleWall.y + Random.Range(0f, 1f) * noiseScaleWall.x, posY * noiseScaleWall.y + Random.Range(0f, 1f) * noiseScaleWall.y);
 
-            if (value > noiseCutoffWall && drawWallOverlayPatternTiles && (_posX + _posY) % 3 == 0) overlayTiles[_posX, _posY] = EOverlayType.wallPattern;
-            else if (drawWallOverlayRandomTiles && Random.Range(0, 100) < randomWallOverlayChance) overlayTiles[_posX, _posY] = EOverlayType.wallRandom;
+            if (value > noiseCutoffWall && drawWallOverlayPatternTiles && (posX + posY) % 3 == 0) overlayTiles[posX, posY] = EOverlayType.wallPattern;
+            else if (drawWallOverlayRandomTiles && Random.Range(0, 100) < randomWallOverlayChance) overlayTiles[posX, posY] = EOverlayType.wallRandom;
         }
 
 
-        public void InstanciateFloorRandomOverlay()
+        public void InstantiateFloorRandomOverlay()
         {
             for (int x = 0; x < levelSize.x - 1; x++)
             {
                 for (int y = 0; y < levelSize.y - 1; y++)
                 {
-                    if (Random.Range(0, 100) < randomFloorOverlayChance && tiles[x, y] == ETileType.floor) overlayTiles[x, y] = EOverlayType.floorRandom;
+                    if (Random.Range(0, 100) < randomFloorOverlayChance && tiles[x, y].TileType == ETileType.Floor)
+                        overlayTiles[x, y] = EOverlayType.floorRandom;
                 }
             }
         }
 
 
-        public void InstanciateWallRandomOverlay()
+        public void InstantiateWallRandomOverlay()
         {
             for (int x = 0; x < levelSize.x - 1; x++)
             {
                 for (int y = 0; y < levelSize.y - 1; y++)
                 {
-                    if (Random.Range(0, 100) < randomWallOverlayChance && tiles[x, y] == ETileType.wall) overlayTiles[x, y] = EOverlayType.wallRandom;
+                    if (Random.Range(0, 100) < randomWallOverlayChance && tiles[x, y].TileType == ETileType.Wall) 
+                        overlayTiles[x, y] = EOverlayType.wallRandom;
                 }
             }
         }
@@ -914,39 +998,42 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                 RotateLevel();
             }
         }
-
-
+        
         private void SpawnGridTilesOriented()
         {
-            //references
             Tilemap emptyMap = new Tilemap();
             Tilemap overlayMap = new Tilemap();
             Tilemap floorMap = floorParent.GetComponent<Tilemap>();
             Tilemap wallMap = wallParent.GetComponent<Tilemap>();
 
-            if (drawFloorOverlayPatternTiles || drawFloorOverlayRandomTiles || drawWallOverlayPatternTiles || drawWallOverlayRandomTiles) overlayMap = overlayParent.GetComponent<Tilemap>();
-            if (drawEmptyTiles) emptyMap = emptyParent.GetComponent<Tilemap>();
+            if (drawFloorOverlayPatternTiles || drawFloorOverlayRandomTiles || drawWallOverlayPatternTiles || drawWallOverlayRandomTiles)
+                overlayMap = overlayParent.GetComponent<Tilemap>();
+            if (drawEmptyTiles)
+                emptyMap = emptyParent.GetComponent<Tilemap>();
 
-
-            //instanciate
+            
             for (int x = 0; x < levelSize.x; x++)
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor)
+                    DungeonTile currentTile = tiles[x, y];
+                    if (currentTile.TileType == ETileType.Floor)
                     {
-                        bool wallTop = tiles[x, y + 1] == ETileType.wall;
-                        bool wallLeft = tiles[x - 1, y] == ETileType.wall;
-                        bool wallBottom = tiles[x, y - 1] == ETileType.wall;
-                        bool wallRight = tiles[x + 1, y] == ETileType.wall;
+                        Dictionary<EEightDirection, DungeonTile> wallNeighborTypeTiles = currentTile.GetNeighborTypeTiles(ETileType.Wall);
+                        
+                        
+                        
+                        bool wallTop = tiles[x, y + 1].TileType == ETileType.Wall;
+                        bool wallLeft = tiles[x - 1, y].TileType == ETileType.Wall;
+                        bool wallBottom = tiles[x, y - 1].TileType == ETileType.Wall;
+                        bool wallRight = tiles[x + 1, y].TileType == ETileType.Wall;
 
-                        bool wallTopLeft = tiles[x - 1, y + 1] == ETileType.wall;
-                        bool wallTopRight = tiles[x + 1, y + 1] == ETileType.wall;
-                        bool wallBottomLeft = tiles[x - 1, y - 1] == ETileType.wall;
-                        bool wallBottomRight = tiles[x + 1, y - 1] == ETileType.wall;
-
-
-                        //4 sides
+                        bool wallTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Wall;
+                        bool wallTopRight = tiles[x + 1, y + 1].TileType == ETileType.Wall;
+                        bool wallBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Wall;
+                        bool wallBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Wall;
+                        
+                        //4방향이 벽이 아니라면
                         if (!wallTop && !wallLeft && !wallBottom && !wallRight)
                         {
                             if(drawCorners)
@@ -978,8 +1065,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                             if (overlayTiles[x, y] == EOverlayType.floorPattern) overlayMap.SetTile(new Vector3Int(x, y, 0), patternFloorTile);
                             else if (overlayTiles[x, y] == EOverlayType.floorRandom) overlayMap.SetTile(new Vector3Int(x, y, 0), randomFloorTile);
                         }
-
-                        //one side
+                        
+                        //1방향만 벽이라면
                         else if (wallTop && !wallLeft && !wallBottom && !wallRight)
                         {
                             if (drawCorners)
@@ -1116,7 +1203,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         }
                     }
 
-                    else if (tiles[x, y] == ETileType.wall)
+                    else if (tiles[x, y].TileType == ETileType.Wall)
                     {
                         bool floorTop = false;
                         bool floorLeft = false;
@@ -1128,15 +1215,15 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         bool floorBottomLeft = false;
                         bool floorBottomRight = false;
 
-                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1] == ETileType.floor;
-                        if (x - 1 > 0) floorLeft = tiles[x - 1, y] == ETileType.floor;
-                        if (y - 1 > 0) floorBottom = tiles[x, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y] == ETileType.floor;
+                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0) floorLeft = tiles[x - 1, y].TileType == ETileType.Floor;
+                        if (y - 1 > 0) floorBottom = tiles[x, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y].TileType == ETileType.Floor;
 
-                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1] == ETileType.floor;
-                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1] == ETileType.floor;
+                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Floor;
 
 
                         //one side
@@ -1313,6 +1400,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         }
 
 
+        
+
         private void SpawnGridTiles()
         {
             //references
@@ -1332,8 +1421,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor) floorMap.SetTile(new Vector3Int(x, y, 0), floorTile_1);
-                    else if (tiles[x, y] == ETileType.wall) wallMap.SetTile(new Vector3Int(x, y, 0), wallTile_1);
+                    if (tiles[x, y].TileType == ETileType.Floor) floorMap.SetTile(new Vector3Int(x, y, 0), floorTile_1);
+                    else if (tiles[x, y].TileType == ETileType.Wall) wallMap.SetTile(new Vector3Int(x, y, 0), wallTile_1);
                     else if (drawEmptyTiles) emptyMap.SetTile(new Vector3Int(x, y, 0), emptyTile);
 
                     if (overlayTiles[x, y] == EOverlayType.floorPattern) overlayMap.SetTile(new Vector3Int(x, y, 0), patternFloorTile);
@@ -1351,17 +1440,17 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor)
+                    if (tiles[x, y].TileType == ETileType.Floor)
                     {
-                        bool wallTop = tiles[x, y + 1] == ETileType.wall;
-                        bool wallLeft = tiles[x - 1, y] == ETileType.wall;
-                        bool wallBottom = tiles[x, y - 1] == ETileType.wall;
-                        bool wallRight = tiles[x + 1, y] == ETileType.wall;
+                        bool wallTop = tiles[x, y + 1].TileType == ETileType.Wall;
+                        bool wallLeft = tiles[x - 1, y].TileType == ETileType.Wall;
+                        bool wallBottom = tiles[x, y - 1].TileType == ETileType.Wall;
+                        bool wallRight = tiles[x + 1, y].TileType == ETileType.Wall;
 
-                        bool wallTopLeft = tiles[x - 1, y + 1] == ETileType.wall;
-                        bool wallTopRight = tiles[x + 1, y + 1] == ETileType.wall;
-                        bool wallBottomLeft = tiles[x - 1, y - 1] == ETileType.wall;
-                        bool wallBottomRight = tiles[x + 1, y - 1] == ETileType.wall;
+                        bool wallTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Wall;
+                        bool wallTopRight = tiles[x + 1, y + 1].TileType == ETileType.Wall;
+                        bool wallBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Wall;
+                        bool wallBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Wall;
 
 
                         //4 sides
@@ -1561,7 +1650,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         }
                     }
 
-                    else if (tiles[x, y] == ETileType.wall)
+                    else if (tiles[x, y].TileType == ETileType.Wall)
                     {
                         bool floorTop = false;
                         bool floorLeft = false;
@@ -1573,15 +1662,15 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         bool floorBottomLeft = false;
                         bool floorBottomRight = false;
 
-                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1] == ETileType.floor;
-                        if (x - 1 > 0) floorLeft = tiles[x - 1, y] == ETileType.floor;
-                        if (y - 1 > 0) floorBottom = tiles[x, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y] == ETileType.floor;
+                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0) floorLeft = tiles[x - 1, y].TileType == ETileType.Floor;
+                        if (y - 1 > 0) floorBottom = tiles[x, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y].TileType == ETileType.Floor;
 
-                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1] == ETileType.floor;
-                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1] == ETileType.floor;
+                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Floor;
 
 
                         //one side
@@ -1764,17 +1853,17 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor)
+                    if (tiles[x, y].TileType == ETileType.Floor)
                     {
-                        bool wallTop = tiles[x, y + 1] == ETileType.wall;
-                        bool wallLeft = tiles[x - 1, y] == ETileType.wall;
-                        bool wallBottom = tiles[x, y - 1] == ETileType.wall;
-                        bool wallRight = tiles[x + 1, y] == ETileType.wall;
+                        bool wallTop = tiles[x, y + 1].TileType == ETileType.Wall;
+                        bool wallLeft = tiles[x - 1, y].TileType == ETileType.Wall;
+                        bool wallBottom = tiles[x, y - 1].TileType == ETileType.Wall;
+                        bool wallRight = tiles[x + 1, y].TileType == ETileType.Wall;
 
-                        bool wallTopLeft = tiles[x - 1, y + 1] == ETileType.wall;
-                        bool wallTopRight = tiles[x + 1, y + 1] == ETileType.wall;
-                        bool wallBottomLeft = tiles[x - 1, y - 1] == ETileType.wall;
-                        bool wallBottomRight = tiles[x + 1, y - 1] == ETileType.wall;
+                        bool wallTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Wall;
+                        bool wallTopRight = tiles[x + 1, y + 1].TileType == ETileType.Wall;
+                        bool wallBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Wall;
+                        bool wallBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Wall;
 
 
                         //4 sides
@@ -1974,7 +2063,7 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         }
                     }
 
-                    else if (tiles[x, y] == ETileType.wall)
+                    else if (tiles[x, y].TileType == ETileType.Wall)
                     {
                         bool floorTop = false;
                         bool floorLeft = false;
@@ -1986,15 +2075,15 @@ namespace DungeonRPG.RoguelikeGeneratorPro
                         bool floorBottomLeft = false;
                         bool floorBottomRight = false;
 
-                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1] == ETileType.floor;
-                        if (x - 1 > 0) floorLeft = tiles[x - 1, y] == ETileType.floor;
-                        if (y - 1 > 0) floorBottom = tiles[x, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y] == ETileType.floor;
+                        if (y + 1 < levelSize.y) floorTop = tiles[x, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0) floorLeft = tiles[x - 1, y].TileType == ETileType.Floor;
+                        if (y - 1 > 0) floorBottom = tiles[x, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x) floorRight = tiles[x + 1, y].TileType == ETileType.Floor;
 
-                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1] == ETileType.floor;
-                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1] == ETileType.floor;
-                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1] == ETileType.floor;
+                        if (x - 1 > 0 && y + 1 < levelSize.y) floorTopLeft = tiles[x - 1, y + 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y + 1 < levelSize.y) floorTopRight = tiles[x + 1, y + 1].TileType == ETileType.Floor;
+                        if (x - 1 > 0 && y - 1 > 0) floorBottomLeft = tiles[x - 1, y - 1].TileType == ETileType.Floor;
+                        if (x + 1 < levelSize.x && y - 1 > 0) floorBottomRight = tiles[x + 1, y - 1].TileType == ETileType.Floor;
 
 
                         //one side
@@ -2177,8 +2266,8 @@ namespace DungeonRPG.RoguelikeGeneratorPro
             {
                 for (int y = 0; y < levelSize.y; y++)
                 {
-                    if (tiles[x, y] == ETileType.floor && (!deleteFloorBelowOverlay || (deleteFloorBelowOverlay && overlayTiles[x, y] != EOverlayType.floorPattern && overlayTiles[x, y] != EOverlayType.floorRandom))) SpawnTile(floorTileObj_1, floorParent.transform, x, y);
-                    else if (tiles[x, y] == ETileType.wall) SpawnTile(wallTileObj_1, wallParent.transform, x, y);
+                    if (tiles[x, y].TileType == ETileType.Floor && (!deleteFloorBelowOverlay || (deleteFloorBelowOverlay && overlayTiles[x, y] != EOverlayType.floorPattern && overlayTiles[x, y] != EOverlayType.floorRandom))) SpawnTile(floorTileObj_1, floorParent.transform, x, y);
+                    else if (tiles[x, y].TileType == ETileType.Wall) SpawnTile(wallTileObj_1, wallParent.transform, x, y);
                     else if (drawEmptyTiles) SpawnTile(emptyTileObj, emptyParent.transform, x, y);
 
                     if (overlayTiles[x, y] == EOverlayType.floorPattern) SpawnTile(patternFloorTileObj, overlayParent.transform, x, y);
@@ -2257,7 +2346,13 @@ namespace DungeonRPG.RoguelikeGeneratorPro
         private int TileTypeNumber(ETileType eTileType)
         {
             int count = 0;
-            foreach (ETileType tile in tiles) if (tile == eTileType) count++;
+            foreach (DungeonTile tile in tiles)
+            {
+                if (tile.TileType == eTileType)
+                {
+                    count++;
+                }
+            }
 
             return count;
         }
@@ -2265,7 +2360,15 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         private bool IsFloorTouchingWall(int _posX, int _posY)
         {
-            return (tiles[_posX, _posY] == ETileType.floor && tiles[_posX + 1, _posY] != ETileType.wall && tiles[_posX + 1, _posY + 1] != ETileType.wall && tiles[_posX, _posY + 1] != ETileType.wall && tiles[_posX - 1, _posY + 1] != ETileType.wall && tiles[_posX - 1, _posY] != ETileType.wall && tiles[_posX - 1, _posY - 1] != ETileType.wall && tiles[_posX, _posY - 1] != ETileType.wall && tiles[_posX + 1, _posY - 1] != ETileType.wall);
+            return (tiles[_posX, _posY].TileType == ETileType.Floor &&
+                    tiles[_posX + 1, _posY].TileType != ETileType.Wall &&
+                    tiles[_posX + 1, _posY + 1].TileType != ETileType.Wall &&
+                    tiles[_posX, _posY + 1].TileType != ETileType.Wall &&
+                    tiles[_posX - 1, _posY + 1].TileType != ETileType.Wall && 
+                    tiles[_posX - 1, _posY].TileType != ETileType.Wall && 
+                    tiles[_posX - 1, _posY - 1].TileType != ETileType.Wall &&
+                    tiles[_posX, _posY - 1].TileType != ETileType.Wall && 
+                    tiles[_posX + 1, _posY - 1].TileType != ETileType.Wall);
         }
 
         #endregion
@@ -2273,41 +2376,18 @@ namespace DungeonRPG.RoguelikeGeneratorPro
 
         #region Getters
 
-        public ETileType[,] GetTiles()
-        {
-            return tiles;
-        }
+        public DungeonTile[,] GetTiles() { return tiles; }
 
+        public EOverlayType[,] GetOverlayTiles() { return overlayTiles; }
+        
+        public Vector2Int GetLevelSize() { return levelSize; }
+        
+        public float GetTilesSize() { return tileSize; }
+        
+        public levelRotation GetLevelRotation() { return levelRot; }
 
-        public EOverlayType[,] GetOverlayTiles()
-        {
-            return overlayTiles;
-        }
-
-
-        public Vector2Int GetLevelSize()
-        {
-            return levelSize;
-        }
-
-
-        public float GetTilesSize()
-        {
-            return tileSize;
-        }
-
-
-        public levelRotation GetLevelRotation()
-        {
-            return levelRot;
-        }
-
-
-        public EGenType GetGenerationType()
-        {
-            return generation;
-        }
-
+        public EGenType GetGenerationType() { return generation; }
+        
         #endregion
     }
 }
