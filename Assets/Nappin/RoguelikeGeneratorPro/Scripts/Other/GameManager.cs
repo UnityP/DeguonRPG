@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
 
 
     private DungeonRPG.RoguelikeGeneratorPro.RoguelikeGeneratorPro mainLevelGenerator;
-    private ETileType[,] tiles;
+    private DungeonTile[,] tiles;
     private Vector2Int levelSize;
     private float tilesSize;
     private levelRotation levelRot;
@@ -64,7 +64,7 @@ public class GameManager : MonoBehaviour
         {
             for (int y = 0; y < levelSize.y - 1; y++)
             {
-                if (tiles[x, y] == ETileType.floor)
+                if (tiles[x, y].TileType == ETileType.Floor)
                 {
                     if(generation == EGenType.generateTile) GameObject.Instantiate(playerObj, new Vector3(x + tilesSize / 2, y + tilesSize / 2, playerHeightOffset) + mainLevelGenerator.transform.localPosition, Quaternion.identity);
                     else if (levelRot == levelRotation.XZ) GameObject.Instantiate(playerObj, new Vector3(x * tilesSize, playerHeightOffset, y * tilesSize) + mainLevelGenerator.transform.localPosition, Quaternion.identity);
@@ -86,7 +86,7 @@ public class GameManager : MonoBehaviour
         {
             for (int y = levelSize.y - 1; y > 0; y--)
             {
-                if (tiles[x, y] == ETileType.floor)
+                if (tiles[x, y].TileType == ETileType.Floor)
                 {
                     if (generation == EGenType.generateTile) GameObject.Instantiate(targetObj, new Vector3(x + tilesSize / 2, y + tilesSize / 2, targetHeightOffset) + mainLevelGenerator.transform.localPosition, Quaternion.identity);
                     else if (levelRot == levelRotation.XZ) GameObject.Instantiate(targetObj, new Vector3(x * tilesSize, targetHeightOffset, y * tilesSize) + mainLevelGenerator.transform.localPosition, Quaternion.identity);
